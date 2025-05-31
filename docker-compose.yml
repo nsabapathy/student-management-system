@@ -1,0 +1,60 @@
+services:
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "5173:5173"  # Vite's default port
+    volumes:
+      - ./frontend/src:/usr/src/app/src
+      - ./frontend/public:/usr/src/app/public
+      - ./frontend/index.html:/usr/src/app/index.html
+      - ./frontend/package.json:/usr/src/app/package.json
+      - ./frontend/tsconfig.json:/usr/src/app/tsconfig.json
+      - ./frontend/tsconfig.node.json:/usr/src/app/tsconfig.node.json
+      - ./frontend/vite.config.ts:/usr/src/app/vite.config.ts
+    environment:
+      - NODE_ENV=development
+      - CHOKIDAR_USEPOLLING=true  # Enable polling for hot reload
+    stdin_open: true  # Enable interactive mode
+    tty: true        # Enable terminal for better output
+
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - frontend_build:/usr/share/nginx/html
+    depends_on:
+      - frontend
+      - backend
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    expose:
+      - "8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/student_db
+      - JWT_SECRET_KEY=your-secret-key-here
+      - PYTHONPATH=/app
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:7.0
+    expose:
+      - "27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=student_db
+
+volumes:
+  mongodb_data:
+  frontend_build:
