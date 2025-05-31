@@ -15,8 +15,10 @@ class PyObjectId(ObjectId):
         return ObjectId(v)
 
     @classmethod
-    def __modify_schema__(cls, field_schema):
-        field_schema.update(type="string")
+    def __get_pydantic_json_schema__(cls, core_schema, handler):
+        json_schema = handler(core_schema)
+        json_schema.update(type="string")
+        return json_schema
 
 class StudentBase(BaseModel):
     name: str = Field(..., min_length=2, max_length=50)
@@ -49,5 +51,5 @@ class StudentUpdate(BaseModel):
     address: Optional[str] = Field(None, min_length=10, max_length=200)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
 
-class StudentResponse(StudentInDB):
+class Student(StudentInDB):
     pass

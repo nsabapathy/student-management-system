@@ -1,10 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from app.core.config import settings
-from app.routers import students
+from app.routers.students import router as student_router
 from app.database.connection import db
 
-app = FastAPI(title="Student Management System API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Connect to the database
+    await db.connect_db()
+    yield
+    # Shutdown: Close the database connection
+    await db.close_db()
+
+app = FastAPI(title="Student Management System API", lifespan=lifespan)
 
 # Configure CORS
 app.add_middleware(
@@ -15,16 +24,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-@app.on_event("startup")
-async def startup_db_client():
-    await db.connect_db()
-
-@app.on_event("shutdown")
-async def shutdown_db_client():
-    await db.close_db()
-
 # Include routers
-app.include_router(students.router, prefix="/api/v1", tags=["students"])
+app.include_router(student_router, prefix="/api/v1/students", tags=["students"])
 
 @app.get("/health")
 async def health_check():

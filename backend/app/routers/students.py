@@ -4,7 +4,7 @@ from app.models.student import Student, StudentCreate, StudentUpdate
 from app.database.connection import Database
 from bson import ObjectId
 
-router = APIRouter(prefix="/students", tags=["students"])
+router = APIRouter()
 db = Database.get_db()
 
 @router.get("/", response_model=List[Student])
