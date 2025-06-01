@@ -60,7 +60,7 @@ export default function StudentForm() {
     if (isEditing) {
       const fetchStudent = async () => {
         try {
-          const response = await axios.get(`http://localhost:8000/api/v1/students/${id}`);
+          const response = await axios.get(`/api/v1/students/${id}`);
           const student = response.data;
           // Set form values
         } catch (error) {
@@ -75,9 +75,9 @@ export default function StudentForm() {
   const handleSubmit = async (values: StudentFormData) => {
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:8000/api/v1/students/${id}`, values);
+        await axios.put(`/api/v1/students/${id}`, values);
       } else {
-        await axios.post('http://localhost:8000/api/v1/students', values);
+        await axios.post('/api/v1/students', values);
       }
       navigate('/students');
     } catch (error) {

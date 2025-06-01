@@ -19,7 +19,7 @@ export default function StudentList() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await axios.get('http://localhost:8000/api/v1/students');
+        const response = await axios.get('/api/v1/students');
         setStudents(response.data);
         setLoading(false);
       } catch (err) {
@@ -34,7 +34,7 @@ export default function StudentList() {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
       try {
-        await axios.delete(`http://localhost:8000/api/v1/students/${id}`);
+        await axios.delete(`/api/v1/students/${id}`);
         setStudents(students.filter(student => student._id !== id));
       } catch (err) {
         setError('Failed to delete student');

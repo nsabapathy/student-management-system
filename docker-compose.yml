@@ -27,33 +27,43 @@ services:
       - "80:80"
     volumes:
       - frontend_build:/usr/share/nginx/html
+    networks:
+      - student_api_network
     depends_on:
       - frontend
-      - backend
+      - api
 
-  backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    expose:
-      - "8000"
+  mongodb:
+    image: mongo:latest
+    container_name: mongodb2
+    restart: always
+    ports:
+      - "27017:27017"
     volumes:
-      - ./backend:/app
+      - mongodb_data:/data/db
+    networks:
+      - student_api_network
+
+  api:
+    build: ./fastapi_stud_mgmt_api
+    container_name: fastapi_student_api
+    restart: always
+    ports:
+      - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/student_db
-      - JWT_SECRET_KEY=your-secret-key-here
-      - PYTHONPATH=/app
+      - MONGODB_URI=mongodb://mongodb2:27017
+      - DATABASE_NAME=student_management
+      - JWT_SECRET_KEY=f586fa74d2d1ee31e4154729d1eea85530cc0fc4e0b4dbd3566a7d3ef025cca7
+    volumes:
+      - ./fastapi_stud_mgmt_api:/app
+    networks:
+      - student_api_network
     depends_on:
       - mongodb
 
-  mongodb:
-    image: mongo:7.0
-    expose:
-      - "27017"
-    volumes:
-      - mongodb_data:/data/db
-    environment:
-      - MONGO_INITDB_DATABASE=student_db
+networks:
+  student_api_network:
+    driver: bridge
 
 volumes:
   mongodb_data:

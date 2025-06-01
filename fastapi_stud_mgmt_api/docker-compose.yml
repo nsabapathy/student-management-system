@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: fastapi_student_api
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
+      - DATABASE_NAME=student_management
+      - JWT_SECRET_KEY=f586fa74d2d1ee31e4154729d1eea85530cc0fc4e0b4dbd3566a7d3ef025cca7
+    volumes:
+      - .:/app
+    networks:
+      - student_api_network
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongodb_student_api
+    restart: always
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - student_api_network
+
+networks:
+  student_api_network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
