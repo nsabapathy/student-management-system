@@ -1,14 +1,18 @@
 import { useState, useEffect } from 'react';
-import axios from 'axios';
 import { Link } from 'react-router-dom';
+import api from '../utils/api';
 
 interface Student {
   _id: string;
+  id: string;
   name: string;
   email: string;
-  grade_level: string;
+  grade: number;
+  grade_level?: string; // For compatibility with UI
   age: number;
-  role: string;
+  address: string;
+  description?: string;
+  role?: string;
 }
 
 export default function StudentList() {
@@ -19,11 +23,48 @@ export default function StudentList() {
   useEffect(() => {
     const fetchStudents = async () => {
       try {
-        const response = await axios.get('/api/v1/students');
-        setStudents(response.data);
+        console.log('Attempting to fetch students...');
+        // Make API request (auth header is added by our api client)
+        const response = await api.get('/v1/students/');
+        
+        console.log('API Response:', response);
+        
+        // Make sure we're getting an array from the response
+        if (Array.isArray(response.data)) {
+          // Transform the data to match our frontend structure
+          const transformedData = response.data.map((student: any) => ({
+            ...student,
+            _id: student.id || student._id, // Use id or _id if available
+            grade_level: student.grade?.toString() || student.grade_level // Use existing grade_level or convert grade
+          }));
+          setStudents(transformedData);
+        } else if (response.data && Array.isArray(response.data.data)) {
+          // Some APIs wrap the data in a data property
+          const transformedData = response.data.data.map((student: any) => ({
+            ...student,
+            _id: student.id || student._id,
+            grade_level: student.grade?.toString() || student.grade_level
+          }));
+          setStudents(transformedData);
+        } else {
+          console.error('Expected array but got:', response.data);
+          setError('Received unexpected data format from server');
+          setStudents([]);
+        }
         setLoading(false);
-      } catch (err) {
-        setError('Failed to fetch students');
+      } catch (err: any) {
+        console.error('API request failed:', err);
+        
+        // Check if it's an authentication error
+        if (err.response && (err.response.status === 401 || err.response.status === 403)) {
+          // If unauthorized, clear token and redirect to login
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+        
+        setError('Failed to fetch students. Please make sure the API is running and accessible.');
+        setStudents([]); // Ensure students is always an array
         setLoading(false);
       }
     };
@@ -34,9 +75,13 @@ export default function StudentList() {
   const handleDelete = async (id: string) => {
     if (window.confirm('Are you sure you want to delete this student?')) {
       try {
-        await axios.delete(`/api/v1/students/${id}`);
+        // Use the server-expected ID format (from the 'id' field)
+        const actualId = students.find(s => s._id === id)?.id || id;
+        
+        await api.delete(`/v1/students/${actualId}`);
         setStudents(students.filter(student => student._id !== id));
       } catch (err) {
+        console.error('Delete failed:', err);
         setError('Failed to delete student');
       }
     }

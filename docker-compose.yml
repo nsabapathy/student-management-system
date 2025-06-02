@@ -18,6 +18,10 @@ services:
       - CHOKIDAR_USEPOLLING=true  # Enable polling for hot reload
     stdin_open: true  # Enable interactive mode
     tty: true        # Enable terminal for better output
+    depends_on:
+      - api
+    networks:
+      - student_api_network  # Add the frontend to the same network as the API
 
   nginx:
     build:

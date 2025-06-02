@@ -1,8 +1,9 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Formik, Form, Field } from 'formik';
+import type { FormikProps } from 'formik';
 import * as Yup from 'yup';
-import axios from 'axios';
+import api from '../utils/api';
 
 interface StudentFormData {
   name: string;
@@ -17,7 +18,7 @@ interface StudentFormData {
 const initialValues: StudentFormData = {
   name: '',
   email: '',
-  grade_level: '',
+  grade_level: '1',
   description: '',
   age: 5,
   address: '',
@@ -33,8 +34,7 @@ const validationSchema = Yup.object({
     .email('Invalid email address')
     .required('Required'),
   grade_level: Yup.string()
-    .min(1, 'Must be at least 1 character')
-    .max(20, 'Must be 20 characters or less')
+    .matches(/^[1-9]$|^1[0-2]$/, 'Must be a number between 1-12')
     .required('Required'),
   description: Yup.string()
     .max(500, 'Must be 500 characters or less'),
@@ -55,17 +55,30 @@ export default function StudentForm() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEditing = Boolean(id);
+  const formikRef = useRef<FormikProps<StudentFormData>>(null);
 
-  useEffect(() => {
-    if (isEditing) {
-      const fetchStudent = async () => {
-        try {
-          const response = await axios.get(`/api/v1/students/${id}`);
+  useEffect(() => {      if (isEditing) {
+        const fetchStudent = async () => {
+          try {
+            // Use our API client which automatically adds the auth token
+            const response = await api.get(`/v1/students/${id}`);
           const student = response.data;
-          // Set form values
+          
+          // Implementation of form value setting with formik
+          if (formikRef.current) {
+            formikRef.current.setValues({
+              name: student.name,
+              email: student.email,
+              grade_level: student.grade.toString(), // Convert numeric grade back to string
+              description: student.description || '',
+              age: student.age,
+              address: student.address,
+              role: student.role || 'student'
+            });
+          }
         } catch (error) {
           console.error('Failed to fetch student:', error);
-          navigate('/students');
+          navigate('/v1/students/');
         }
       };
       fetchStudent();
@@ -74,14 +87,30 @@ export default function StudentForm() {
 
   const handleSubmit = async (values: StudentFormData) => {
     try {
+      // Transform data to match backend schema
+      // Remove any fields that aren't expected by the backend
+      const studentData = {
+        name: values.name,
+        email: values.email,
+        grade: parseInt(values.grade_level), // Convert grade_level to numeric grade
+        age: values.age,
+        address: values.address,
+        description: values.description || '',
+      };
+      
+      console.log('Submitting student data:', studentData);
+      
       if (isEditing) {
-        await axios.put(`/api/v1/students/${id}`, values);
+        const response = await api.put(`/v1/students/${id}`, studentData);
+        console.log('Update response:', response.data);
       } else {
-        await axios.post('/api/v1/students', values);
+        const response = await api.post('/v1/students/', studentData);
+        console.log('Create response:', response.data);
       }
-      navigate('/students');
-    } catch (error) {
+      navigate('/v1/students/');
+    } catch (error: any) {
       console.error('Failed to save student:', error);
+      alert(`Failed to save student: ${error.response?.data?.detail || error.message}`);
     }
   };
 
@@ -92,6 +121,7 @@ export default function StudentForm() {
           {isEditing ? 'Edit Student' : 'Add New Student'}
         </h1>
         <Formik
+          innerRef={formikRef}
           initialValues={initialValues}
           validationSchema={validationSchema}
           onSubmit={handleSubmit}
@@ -128,11 +158,13 @@ export default function StudentForm() {
 
               <div>
                 <label htmlFor="grade_level" className="block text-sm font-medium text-gray-700">
-                  Grade Level
+                  Grade Level (1-12)
                 </label>
                 <Field
                   name="grade_level"
-                  type="text"
+                  type="number"
+                  min="1"
+                  max="12"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
                 />
                 {errors.grade_level && touched.grade_level && (
@@ -205,7 +237,7 @@ export default function StudentForm() {
               <div className="flex justify-end space-x-4">
                 <button
                   type="button"
-                  onClick={() => navigate('/students')}
+                  onClick={() => navigate('/v1/students/')}
                   className="bg-gray-200 py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
                 >
                   Cancel

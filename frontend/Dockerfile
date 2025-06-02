@@ -16,4 +16,5 @@ RUN npm ci
 COPY . .
 
 # Add development command with host flag for container access
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+ENV VITE_API_HOST=http://api:8000
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "5173", "--strictPort"]
